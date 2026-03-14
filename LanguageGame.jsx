@@ -7,10 +7,18 @@ export default function LanguageGame({ language, level, goHome, updateScore }) {
   const [assembled, setAssembled] = useState([]);
   const [hasStarted, setHasStarted] = useState(false);
   const [feedback, setFeedback] = useState(null);
+  const [previousWord, setPreviousWord] = useState(null);
 
   const loadNewWord = () => {
     const wordsForLevel = wordDB[language][level] || wordDB[language][1];
-    const randomWord = wordsForLevel[Math.floor(Math.random() * wordsForLevel.length)];
+    let randomWord = wordsForLevel[Math.floor(Math.random() * wordsForLevel.length)];
+    
+    if (wordsForLevel.length > 1) {
+      while (previousWord && randomWord.word === previousWord.word) {
+        randomWord = wordsForLevel[Math.floor(Math.random() * wordsForLevel.length)];
+      }
+    }
+    
     setCurrentWordObj(randomWord);
     
     const shuffled = [...randomWord.syllables].sort(() => Math.random() - 0.5);
@@ -52,21 +60,42 @@ export default function LanguageGame({ language, level, goHome, updateScore }) {
     }
   };
 
+  // Mobile-friendly tap to move
+  const handleTapScrambled = (syllable, sourceIndex) => {
+    setAssembled([...assembled, syllable]);
+    const newScrambled = [...scrambled];
+    newScrambled.splice(sourceIndex, 1);
+    setScrambled(newScrambled);
+  };
+
+  const handleTapAssembled = (syllable, sourceIndex) => {
+    setScrambled([...scrambled, syllable]);
+    const newAssembled = [...assembled];
+    newAssembled.splice(sourceIndex, 1);
+    setAssembled(newAssembled);
+  };
+
   const handleDragOver = (e) => e.preventDefault();
 
   const checkAnswer = () => {
     if (assembled.join('') === currentWordObj.word) {
       setFeedback('correct');
-      updateScore(true);
-      setTimeout(loadNewWord, 2000);
+      setPreviousWord(currentWordObj);
+      const willChange = updateScore(true);
+      if (!willChange) {
+        setTimeout(loadNewWord, 2000);
+      }
     } else {
       setFeedback('wrong');
-      setTimeout(() => {
-        const reshuffled = [...currentWordObj.syllables].sort(() => Math.random() - 0.5);
-        setScrambled(reshuffled);
-        setAssembled([]);
-        setFeedback(null);
-      }, 1500);
+      const willChange = updateScore(false);
+      if (!willChange) {
+        setTimeout(() => {
+          const reshuffled = [...currentWordObj.syllables].sort(() => Math.random() - 0.5);
+          setScrambled(reshuffled);
+          setAssembled([]);
+          setFeedback(null);
+        }, 1500);
+      }
     }
   };
 
@@ -91,18 +120,30 @@ export default function LanguageGame({ language, level, goHome, updateScore }) {
 
           <div className="syllable-container scrambled-area">
             {scrambled.map((syl, index) => (
-              <div key={`scrambled-${index}`} className="syllable-block" draggable onDragStart={(e) => handleDragStart(e, syl, index, "scrambled")}>
+              <div 
+                key={`scrambled-${index}`} 
+                className="syllable-block" 
+                draggable 
+                onDragStart={(e) => handleDragStart(e, syl, index, "scrambled")}
+                onClick={() => handleTapScrambled(syl, index)}
+              >
                 {syl}
               </div>
             ))}
           </div>
 
-          <p className="instruction">{language === 'en' ? 'Drag below:' : 'Arraste para baixo:'}</p>
+          <p className="instruction">{language === 'en' ? 'Drag or tap below:' : 'Arraste ou toque para baixo:'}</p>
 
           <div className="drop-zone" onDrop={handleDropToAssembled} onDragOver={handleDragOver}>
             {assembled.length === 0 && <span className="placeholder">...</span>}
             {assembled.map((syl, index) => (
-              <div key={`assembled-${index}`} className="syllable-block assembled">{syl}</div>
+              <div 
+                key={`assembled-${index}`} 
+                className="syllable-block assembled"
+                onClick={() => handleTapAssembled(syl, index)}
+              >
+                {syl}
+              </div>
             ))}
           </div>
           {feedback && <div className={`feedback ${feedback}`}>{feedback === 'correct' ? '✅ Correto!' : '❌ Tenta outra vez!'}</div>}

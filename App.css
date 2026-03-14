@@ -131,4 +131,35 @@
   border: 4px dashed #9E9E9E;
   border-radius: 15px;
   background: #fafafa;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 20px;
+  min-height: 80px;
+}
+
+/* Level Banner Animations */
+.level-banner {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 48px;
+  font-weight: bold;
+  color: white;
+  padding: 40px 60px;
+  border-radius: 20px;
+  z-index: 1000;
+  animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  text-shadow: 4px 4px 0px rgba(0,0,0,0.3);
+  box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+}
+.level-banner.up { background-color: #4CAF50; border: 6px solid #388E3C; }
+.level-banner.down { background-color: #F44336; border: 6px solid #D32F2F; }
+
+@keyframes popIn {
+  0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+  100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
 }

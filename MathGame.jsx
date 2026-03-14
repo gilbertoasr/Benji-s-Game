@@ -13,8 +13,8 @@ export default function MathGame({ level, goHome, updateScore }) {
       op = Math.random() > 0.5 ? '+' : '-';
       if (op === '-' && n1 < n2) [n1, n2] = [n2, n1];
     } else if (level === 2) {
-      n1 = Math.floor(Math.random() * 90) + 10;
-      n2 = Math.floor(Math.random() * 90) + 10;
+      n1 = Math.floor(Math.random() * 81) + 10; // 10 to 90
+      n2 = Math.floor(Math.random() * (100 - n1 - 9)) + 10; // ensures total is <= 100
       op = '+';
     } else if (level === 3) {
       n1 = Math.floor(Math.random() * 90) + 10;
@@ -22,12 +22,12 @@ export default function MathGame({ level, goHome, updateScore }) {
       op = '-';
       if (n1 < n2) [n1, n2] = [n2, n1];
     } else if (level === 4) {
-      n1 = Math.floor(Math.random() * 900) + 100;
-      n2 = Math.floor(Math.random() * 900) + 100;
+      n1 = (Math.floor(Math.random() * 81) + 10) * 10; // Round numbers 100 to 900
+      n2 = (Math.floor(Math.random() * (100 - (n1 / 10) - 9)) + 10) * 10; // ensures total is <= 1000
       op = '+';
     } else if (level === 5) {
-      n1 = Math.floor(Math.random() * 9000) + 1000;
-      n2 = Math.floor(Math.random() * 9000) + 1000;
+      n1 = (Math.floor(Math.random() * 900) + 100) * 10; // Round numbers 1000 to 9990
+      n2 = (Math.floor(Math.random() * 900) + 100) * 10; // Round numbers 1000 to 9990
       op = '+';
     }
     setProblem({ num1: n1, num2: n2, operator: op });
@@ -46,11 +46,16 @@ export default function MathGame({ level, goHome, updateScore }) {
     const correctAnswer = problem.operator === '+' ? problem.num1 + problem.num2 : problem.num1 - problem.num2;
     if (parseInt(userAnswer) === correctAnswer) {
       setFeedback('correct');
-      updateScore(true);
-      setTimeout(generateProblem, 1500);
+      const willChange = updateScore(true);
+      if (!willChange) {
+        setTimeout(generateProblem, 1500);
+      }
     } else {
       setFeedback('wrong');
-      setTimeout(() => setFeedback(null), 1500);
+      const willChange = updateScore(false);
+      if (!willChange) {
+        setTimeout(() => setFeedback(null), 1500);
+      }
       setUserAnswer('');
     }
   };
