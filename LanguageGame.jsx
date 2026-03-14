@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { wordDB } from './data/words';
+import { wordDB } from './words';
 
 export default function LanguageGame({ language, level, goHome, updateScore }) {
   const [currentWordObj, setCurrentWordObj] = useState(null);
