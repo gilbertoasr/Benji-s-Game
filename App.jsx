@@ -69,8 +69,12 @@ export default function App() {
   const [correctInLevel, setCorrectInLevel] = useState(0);
   const [consecutiveWrong, setConsecutiveWrong] = useState(0);
   const [levelBanner, setLevelBanner] = useState(null); // 'up' or 'down'
-  const [isMixedMode, setIsMixedMode] = useState(false);
-  const levelColors = ['#f0f8ff', '#e6f7ff', '#dcf0ff', '#d1e9ff', '#c7e2ff'];
+  const [mixedModeType, setMixedModeType] = useState(null); // 'pt' or 'en'
+  const [usedWords, setUsedWords] = useState({ pt: [], en: [] });
+
+  const dynamicLevelColors = ['#e8f5e9', '#fff9c4', '#fff3e0', '#fce4ec', '#f3e5f5'];
+  const defaultColor = '#f0f8ff';
+  const bgColor = isDynamicMode && level ? dynamicLevelColors[level - 1] : defaultColor;
 
   const goHome = () => {
     setCurrentView('home');
@@ -79,7 +83,8 @@ export default function App() {
     setIsDynamicMode(false);
     setCorrectInLevel(0);
     setConsecutiveWrong(0);
-    setIsMixedMode(false);
+    setMixedModeType(null);
+    setUsedWords({ pt: [], en: [] });
   };
 
   const selectSubject = (sub) => {
@@ -87,10 +92,15 @@ export default function App() {
     setCurrentView('levels');
   };
 
-  const startMixedMode = () => {
-    setIsMixedMode(true);
-    setLevel(1); // Always starts at level 1
-    const subjects = ['math', 'pt', 'en'];
+  const markWordAsUsed = (lang, wordStr) => {
+    setUsedWords(prev => ({ ...prev, [lang]: [...prev[lang], wordStr] }));
+  };
+
+  const startMixedMode = (lang) => {
+    setMixedModeType(lang);
+    setIsDynamicMode(true); // Mixed mode is inherently dynamic
+    setLevel(1);
+    const subjects = ['math', lang];
     const startSubject = subjects[Math.floor(Math.random() * subjects.length)];
     setSubject(startSubject);
     setCurrentView(startSubject);
@@ -110,7 +120,7 @@ export default function App() {
   };
 
   const updateScore = (isCorrect) => {
-    let willLevelChange = false;
+    let blockLocalNext = false;
     let delay = isCorrect ? 3000 : 1500; // 3 seconds for success, 1.5 for failure
 
     setScore(prev => ({
@@ -121,44 +131,52 @@ export default function App() {
       }
     }));
 
-    if (isCorrect && isMixedMode) {
-      setTimeout(() => {
-        const subjects = ['math', 'pt', 'en'];
+    const switchSubjectIfMixed = () => {
+      if (mixedModeType) {
+        const subjects = ['math', mixedModeType];
         let nextSubject = subjects[Math.floor(Math.random() * subjects.length)];
-        // Avoid same subject twice in a row if possible
         while (subjects.length > 1 && nextSubject === subject) {
           nextSubject = subjects[Math.floor(Math.random() * subjects.length)];
         }
         setSubject(nextSubject);
         setCurrentView(nextSubject);
-      }, delay);
-    }
+      }
+    };
 
     if (isDynamicMode) {
       if (isCorrect) {
         setConsecutiveWrong(0);
         const nextCorrect = correctInLevel + 1;
         if (nextCorrect >= 5 && level < 5) { // 5 Correct Answers to Level Up
-          willLevelChange = true;
-          setLevelBanner('up');
-          playArcadeSound('up');
+          blockLocalNext = true;
           setTimeout(() => {
-            setLevel(l => l + 1);
-            setLevelBanner(null);
+            setLevelBanner('up');
+            playArcadeSound('up');
+            setTimeout(() => {
+              setLevel(l => l + 1);
+              setLevelBanner(null);
+              switchSubjectIfMixed();
+            }, 2000); // Banner display time
           }, delay);
           setCorrectInLevel(0);
         } else {
           setCorrectInLevel(nextCorrect >= 5 ? 0 : nextCorrect);
+          if (mixedModeType) {
+            blockLocalNext = true;
+            setTimeout(switchSubjectIfMixed, delay);
+          }
         }
       } else {
         const nextWrong = consecutiveWrong + 1;
         if (nextWrong >= 4 && level > 1) { // 4 Wrong Answers to Level Down
-          willLevelChange = true;
-          setLevelBanner('down');
-          playArcadeSound('down');
+          blockLocalNext = true;
           setTimeout(() => {
-            setLevel(l => l - 1);
-            setLevelBanner(null);
+            setLevelBanner('down');
+            playArcadeSound('down');
+            setTimeout(() => {
+              setLevel(l => l - 1);
+              setLevelBanner(null);
+            }, 2000);
           }, delay);
           setConsecutiveWrong(0);
           setCorrectInLevel(0);
@@ -168,11 +186,11 @@ export default function App() {
       }
     }
 
-    return willLevelChange;
+    return blockLocalNext;
   };
 
   return (
-    <div className="app-container" style={{ backgroundColor: level ? levelColors[level - 1] : levelColors[0] }}>
+    <div className="app-container" style={{ backgroundColor: bgColor }}>
       {subject && (currentView === 'math' || currentView === 'pt' || currentView === 'en') && (
         <div className="scoreboard">
           ⭐ Score - Correct: {score[subject].correct} | Wrong: {score[subject].wrong}
@@ -194,7 +212,8 @@ export default function App() {
           <button className="big-btn math-btn" onClick={() => selectSubject('math')}>🔢 Matemática</button>
           <button className="big-btn pt-btn" onClick={() => selectSubject('pt')}>🇵🇹 Português</button>
           <button className="big-btn en-btn" onClick={() => selectSubject('en')}>🇬🇧 Inglês</button>
-          <button className="big-btn mixed-btn" onClick={startMixedMode}>🔀 Modo Misto</button>
+          <button className="big-btn mixed-btn" onClick={() => startMixedMode('pt')}>🔀 Misto (Mat / PT)</button>
+          <button className="big-btn mixed-btn" onClick={() => startMixedMode('en')}>🔀 Misto (Mat / EN)</button>
         </div>
       )}
 
@@ -216,7 +235,16 @@ export default function App() {
       )}
 
       {currentView === 'math' && <MathGame level={level} goHome={goHome} updateScore={updateScore} playCorrectSound={playCorrectSound} />}
-      {(currentView === 'pt' || currentView === 'en') && <LanguageGame language={subject} level={level} goHome={goHome} updateScore={updateScore} playCorrectSound={playCorrectSound} />}
+      {(currentView === 'pt' || currentView === 'en') && (
+        <LanguageGame 
+          language={subject} 
+          level={level} goHome={goHome} 
+          updateScore={updateScore} 
+          playCorrectSound={playCorrectSound} 
+          usedWords={usedWords[subject] || []} 
+          markWordAsUsed={(w) => markWordAsUsed(subject, w)} 
+        />
+      )}
     </div>
   );
 }

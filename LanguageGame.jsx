@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { wordDB } from './words';
 
-export default function LanguageGame({ language, level, goHome, updateScore, playCorrectSound }) {
+export default function LanguageGame({ language, level, goHome, updateScore, playCorrectSound, usedWords, markWordAsUsed }) {
   const [currentWordObj, setCurrentWordObj] = useState(null);
   const [scrambled, setScrambled] = useState([]);
   const [assembled, setAssembled] = useState([]);
@@ -13,11 +13,17 @@ export default function LanguageGame({ language, level, goHome, updateScore, pla
 
   const loadNewWord = () => {
     const wordsForLevel = wordDB[language][level] || wordDB[language][1];
-    let randomWord = wordsForLevel[Math.floor(Math.random() * wordsForLevel.length)];
+    let availableWords = wordsForLevel.filter(w => !usedWords.includes(w.word));
     
-    if (wordsForLevel.length > 1) {
+    if (availableWords.length === 0) {
+      availableWords = wordsForLevel; // Recycle words if they finish all of them
+    }
+    
+    let randomWord = availableWords[Math.floor(Math.random() * availableWords.length)];
+    
+    if (availableWords.length > 1) {
       while (previousWord && randomWord.word === previousWord.word) {
-        randomWord = wordsForLevel[Math.floor(Math.random() * wordsForLevel.length)];
+        randomWord = availableWords[Math.floor(Math.random() * availableWords.length)];
       }
     }
     
@@ -92,6 +98,7 @@ export default function LanguageGame({ language, level, goHome, updateScore, pla
       setPreviousWord(currentWordObj);
       playCorrectSound();
       setShowSuccess(currentWordObj.image || '🌟');
+      markWordAsUsed(currentWordObj.word);
       
       const willChange = updateScore(true);
       if (!willChange) {
