@@ -71,6 +71,7 @@ export default function App() {
   const [levelBanner, setLevelBanner] = useState(null); // 'up' or 'down'
   const [mixedModeType, setMixedModeType] = useState(null); // 'pt' or 'en'
   const [usedWords, setUsedWords] = useState({ pt: [], en: [] });
+  const [learnedWords, setLearnedWords] = useState({ pt: [], en: [] });
 
   const dynamicLevelColors = ['#e8f5e9', '#fff9c4', '#fff3e0', '#fce4ec', '#f3e5f5'];
   const defaultColor = '#f0f8ff';
@@ -85,11 +86,25 @@ export default function App() {
     setConsecutiveWrong(0);
     setMixedModeType(null);
     setUsedWords({ pt: [], en: [] });
+    setLearnedWords({ pt: [], en: [] });
+    setScore({ math: { correct: 0, wrong: 0 }, pt: { correct: 0, wrong: 0 }, en: { correct: 0, wrong: 0 } });
   };
 
   const selectSubject = (sub) => {
     setSubject(sub);
     setCurrentView('levels');
+  };
+
+  const showSummary = () => {
+    const totalMath = score.math.correct + score.math.wrong;
+    const totalPt = learnedWords.pt.length;
+    const totalEn = learnedWords.en.length;
+
+    if (totalMath > 0 || totalPt > 0 || totalEn > 0) {
+      setCurrentView('summary');
+    } else {
+      goHome(); // Nothing to show, just go home
+    }
   };
 
   const markWordAsUsed = (lang, wordStr) => {
@@ -104,6 +119,12 @@ export default function App() {
     const startSubject = subjects[Math.floor(Math.random() * subjects.length)];
     setSubject(startSubject);
     setCurrentView(startSubject);
+  };
+
+  const markWordAsLearned = (lang, wordObj) => {
+    if (!learnedWords[lang].some(w => w.word === wordObj.word)) {
+      setLearnedWords(prev => ({ ...prev, [lang]: [...prev[lang], wordObj] }));
+    }
   };
 
   const selectLevel = (lvl) => {
@@ -217,6 +238,43 @@ export default function App() {
         </div>
       )}
 
+      {currentView === 'summary' && (
+        <div className="summary-screen">
+          <h1>Resumo da Sessão</h1>
+
+          {(score.math.correct > 0 || score.math.wrong > 0) && (
+            <div className="summary-section">
+              <h2>Matemática</h2>
+              <p>Respostas Corretas: {score.math.correct}</p>
+              <p>Respostas Erradas: {score.math.wrong}</p>
+              <p><b>Percentagem de Acerto: {
+                Math.round((score.math.correct / (score.math.correct + score.math.wrong)) * 100)
+              }%</b></p>
+            </div>
+          )}
+
+          {learnedWords.pt.length > 0 && (
+            <div className="summary-section">
+              <h2>Palavras Aprendidas (PT)</h2>
+              <div className="word-list">
+                {learnedWords.pt.map(word => <span key={word.word} className="word-item">{word.image} {word.word}</span>)}
+              </div>
+            </div>
+          )}
+
+          {learnedWords.en.length > 0 && (
+            <div className="summary-section">
+              <h2>Learned Words (EN)</h2>
+              <div className="word-list">
+                {learnedWords.en.map(word => <span key={word.word} className="word-item">{word.image} {word.word}</span>)}
+              </div>
+            </div>
+          )}
+
+          <button className="nav-btn" onClick={goHome} style={{ backgroundColor: '#4CAF50', fontSize: '24px', padding: '20px 40px' }}>Jogar de Novo</button>
+        </div>
+      )}
+
       {currentView === 'levels' && (
         <div className="level-screen">
           <h2>{subject === 'en' ? 'Choose a Level' : 'Escolhe o Nível'}</h2>
@@ -230,19 +288,20 @@ export default function App() {
               </button>
             ))}
           </div>
-          <button className="nav-btn" onClick={goHome}>🏠 {subject === 'en' ? 'Home' : 'Início'}</button>
+          <button className="nav-btn" onClick={goHome}>🏠 {subject === 'en' ? 'Main Menu' : 'Menu Principal'}</button>
         </div>
       )}
 
-      {currentView === 'math' && <MathGame level={level} goHome={goHome} updateScore={updateScore} playCorrectSound={playCorrectSound} />}
+      {currentView === 'math' && <MathGame level={level} goHome={showSummary} updateScore={updateScore} playCorrectSound={playCorrectSound} />}
       {(currentView === 'pt' || currentView === 'en') && (
         <LanguageGame 
           language={subject} 
-          level={level} goHome={goHome} 
+          level={level} goHome={showSummary} 
           updateScore={updateScore} 
           playCorrectSound={playCorrectSound} 
           usedWords={usedWords[subject] || []} 
           markWordAsUsed={(w) => markWordAsUsed(subject, w)} 
+          markWordAsLearned={(wordObj) => markWordAsLearned(subject, wordObj)} 
         />
       )}
     </div>

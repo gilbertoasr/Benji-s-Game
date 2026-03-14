@@ -6,6 +6,7 @@ export default function MathGame({ level, goHome, updateScore, playCorrectSound 
   const [feedback, setFeedback] = useState(null);
   const [showSuccess, setShowSuccess] = useState(null);
   const [showFailure, setShowFailure] = useState(false);
+  const [wrongCount, setWrongCount] = useState(0);
 
   const generateProblem = () => {
     let n1, n2, op;
@@ -37,6 +38,7 @@ export default function MathGame({ level, goHome, updateScore, playCorrectSound 
     setFeedback(null);
     setShowSuccess(null);
     setShowFailure(false);
+    setWrongCount(0);
   };
 
   useEffect(() => {
@@ -47,6 +49,7 @@ export default function MathGame({ level, goHome, updateScore, playCorrectSound 
   const handleClear = () => setUserAnswer('');
 
   const handleSubmit = () => {
+    if (userAnswer === '') return;
     const correctAnswer = problem.operator === '+' ? problem.num1 + problem.num2 : problem.num1 - problem.num2;
     if (parseInt(userAnswer) === correctAnswer) {
       setFeedback('correct');
@@ -54,23 +57,36 @@ export default function MathGame({ level, goHome, updateScore, playCorrectSound 
       setShowSuccess(correctAnswer);
       
       const willChange = updateScore(true);
-      if (!willChange) {
-        setTimeout(() => {
+      setTimeout(() => {
+        setShowSuccess(null);
+        if (!willChange) {
           generateProblem();
-        }, 3000); // 3s to match fireworks
-      }
+        }
+      }, 3000); // 3s to match fireworks, hides exactly when Level banner appears
     } else {
       setFeedback('wrong');
       setShowFailure(true);
+      setWrongCount(prev => prev + 1);
       const willChange = updateScore(false);
-      if (!willChange) {
-        setTimeout(() => {
-          setFeedback(null);
-          setShowFailure(false);
-        }, 1500);
-      }
+      setTimeout(() => {
+        setFeedback(null);
+        setShowFailure(false);
+      }, 1500); // Hides exactly when Level Down banner appears
       setUserAnswer('');
     }
+  };
+
+  const decomposeNumber = (num) => {
+    const str = num.toString();
+    if (str.length <= 1) return str;
+    const parts = [];
+    for (let i = 0; i < str.length; i++) {
+      const digit = parseInt(str[i], 10);
+      if (digit !== 0) {
+        parts.push(digit * Math.pow(10, str.length - 1 - i));
+      }
+    }
+    return parts.join(' + ');
   };
 
   return (
@@ -96,6 +112,13 @@ export default function MathGame({ level, goHome, updateScore, playCorrectSound 
       <div className="equation-board">
         {problem.num1} {problem.operator} {problem.num2} = {userAnswer || '?'}
       </div>
+
+      {wrongCount >= 2 && level >= 2 && (
+        <div className="hint-container">
+          <div className="hint-box">💡 Dica: {problem.num2} = {decomposeNumber(problem.num2)}</div>
+        </div>
+      )}
+
       {feedback && <div className={`feedback ${feedback}`}>{feedback === 'correct' ? '✅ Correto!' : '❌ Tenta outra vez!'}</div>}
       <div className="numpad">
         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map(num => (

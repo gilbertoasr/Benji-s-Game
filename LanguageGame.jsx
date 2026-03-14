@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { wordDB } from './words';
 
-export default function LanguageGame({ language, level, goHome, updateScore, playCorrectSound, usedWords, markWordAsUsed }) {
+export default function LanguageGame({ language, level, goHome, updateScore, playCorrectSound, usedWords, markWordAsUsed, markWordAsLearned }) {
   const [currentWordObj, setCurrentWordObj] = useState(null);
   const [scrambled, setScrambled] = useState([]);
   const [assembled, setAssembled] = useState([]);
@@ -10,6 +10,7 @@ export default function LanguageGame({ language, level, goHome, updateScore, pla
   const [previousWord, setPreviousWord] = useState(null);
   const [showSuccess, setShowSuccess] = useState(null);
   const [showFailure, setShowFailure] = useState(false);
+  const [wrongCount, setWrongCount] = useState(0);
 
   const loadNewWord = () => {
     const wordsForLevel = wordDB[language][level] || wordDB[language][1];
@@ -41,6 +42,7 @@ export default function LanguageGame({ language, level, goHome, updateScore, pla
     setFeedback(null);
     setShowSuccess(null);
     setShowFailure(false);
+    setWrongCount(0);
   };
 
   useEffect(() => {
@@ -93,41 +95,37 @@ export default function LanguageGame({ language, level, goHome, updateScore, pla
   const handleDragOver = (e) => e.preventDefault();
 
   const checkAnswer = () => {
+    if (assembled.length === 0) return;
     if (assembled.join('') === currentWordObj.word) {
       setFeedback('correct');
       setPreviousWord(currentWordObj);
       playCorrectSound();
       setShowSuccess(currentWordObj.image || '🌟');
+      markWordAsLearned(currentWordObj);
       markWordAsUsed(currentWordObj.word);
       
       const willChange = updateScore(true);
-      if (!willChange) {
-        setTimeout(loadNewWord, 3000);
-      }
+      setTimeout(() => {
+        setShowSuccess(null);
+        if (!willChange) loadNewWord();
+      }, 3000);
     } else {
       setFeedback('wrong');
       setShowFailure(true);
+      setWrongCount(prev => prev + 1);
       const willChange = updateScore(false);
-      if (!willChange) {
-        setTimeout(() => {
-          let reshuffled = [...currentWordObj.syllables].sort(() => Math.random() - 0.5);
-          while (reshuffled.join('') === currentWordObj.word && currentWordObj.syllables.length > 1) {
-            reshuffled = [...currentWordObj.syllables].sort(() => Math.random() - 0.5);
-          }
-          setScrambled(reshuffled);
-          setAssembled([]);
-          setFeedback(null);
-          setShowFailure(false);
-        }, 1500);
-      }
+      setTimeout(() => {
+        let reshuffled = [...currentWordObj.syllables].sort(() => Math.random() - 0.5);
+        while (reshuffled.join('') === currentWordObj.word && currentWordObj.syllables.length > 1) {
+          reshuffled = [...currentWordObj.syllables].sort(() => Math.random() - 0.5);
+        }
+        setScrambled(reshuffled);
+        setAssembled([]);
+        setFeedback(null);
+        setShowFailure(false);
+      }, 1500);
     }
   };
-
-  useEffect(() => {
-    if (currentWordObj && assembled.length === currentWordObj.syllables.length) {
-      checkAnswer();
-    }
-  }, [assembled]);
 
   return (
     <div className="language-game">
@@ -186,6 +184,17 @@ export default function LanguageGame({ language, level, goHome, updateScore, pla
               </div>
             ))}
           </div>
+
+          {wrongCount >= 2 && currentWordObj && (
+            <div className="hint-container" style={{ justifyContent: 'center' }}>
+              <div className="hint-box">💡 {language === 'en' ? 'Hint: The first syllable is' : 'Dica: A primeira sílaba é'} "{currentWordObj.syllables[0]}"</div>
+            </div>
+          )}
+
+          <button onClick={checkAnswer} className="nav-btn" style={{ padding: '20px 40px', fontSize: '24px', backgroundColor: '#4CAF50', width: '100%' }}>
+            ✅ {language === 'en' ? 'Submit Answer' : 'Confirmar Resposta'}
+          </button>
+
           {feedback && <div className={`feedback ${feedback}`}>{feedback === 'correct' ? '✅ Correto!' : '❌ Tenta outra vez!'}</div>}
         </div>
       )}
