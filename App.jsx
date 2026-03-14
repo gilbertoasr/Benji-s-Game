@@ -69,6 +69,8 @@ export default function App() {
   const [correctInLevel, setCorrectInLevel] = useState(0);
   const [consecutiveWrong, setConsecutiveWrong] = useState(0);
   const [levelBanner, setLevelBanner] = useState(null); // 'up' or 'down'
+  const [isMixedMode, setIsMixedMode] = useState(false);
+  const levelColors = ['#f0f8ff', '#e6f7ff', '#dcf0ff', '#d1e9ff', '#c7e2ff'];
 
   const goHome = () => {
     setCurrentView('home');
@@ -77,11 +79,21 @@ export default function App() {
     setIsDynamicMode(false);
     setCorrectInLevel(0);
     setConsecutiveWrong(0);
+    setIsMixedMode(false);
   };
 
   const selectSubject = (sub) => {
     setSubject(sub);
     setCurrentView('levels');
+  };
+
+  const startMixedMode = () => {
+    setIsMixedMode(true);
+    setLevel(1); // Always starts at level 1
+    const subjects = ['math', 'pt', 'en'];
+    const startSubject = subjects[Math.floor(Math.random() * subjects.length)];
+    setSubject(startSubject);
+    setCurrentView(startSubject);
   };
 
   const selectLevel = (lvl) => {
@@ -99,7 +111,7 @@ export default function App() {
 
   const updateScore = (isCorrect) => {
     let willLevelChange = false;
-    let delay = isCorrect ? 2000 : 1500; // 2 seconds for fireworks
+    let delay = isCorrect ? 3000 : 1500; // 3 seconds for success, 1.5 for failure
 
     setScore(prev => ({
       ...prev,
@@ -108,6 +120,19 @@ export default function App() {
         [isCorrect ? 'correct' : 'wrong']: prev[subject][isCorrect ? 'correct' : 'wrong'] + 1
       }
     }));
+
+    if (isCorrect && isMixedMode) {
+      setTimeout(() => {
+        const subjects = ['math', 'pt', 'en'];
+        let nextSubject = subjects[Math.floor(Math.random() * subjects.length)];
+        // Avoid same subject twice in a row if possible
+        while (subjects.length > 1 && nextSubject === subject) {
+          nextSubject = subjects[Math.floor(Math.random() * subjects.length)];
+        }
+        setSubject(nextSubject);
+        setCurrentView(nextSubject);
+      }, delay);
+    }
 
     if (isDynamicMode) {
       if (isCorrect) {
@@ -147,7 +172,7 @@ export default function App() {
   };
 
   return (
-    <div className="app-container">
+    <div className="app-container" style={{ backgroundColor: level ? levelColors[level - 1] : levelColors[0] }}>
       {subject && (currentView === 'math' || currentView === 'pt' || currentView === 'en') && (
         <div className="scoreboard">
           ⭐ Score - Correct: {score[subject].correct} | Wrong: {score[subject].wrong}
@@ -169,6 +194,7 @@ export default function App() {
           <button className="big-btn math-btn" onClick={() => selectSubject('math')}>🔢 Matemática</button>
           <button className="big-btn pt-btn" onClick={() => selectSubject('pt')}>🇵🇹 Português</button>
           <button className="big-btn en-btn" onClick={() => selectSubject('en')}>🇬🇧 Inglês</button>
+          <button className="big-btn mixed-btn" onClick={startMixedMode}>🔀 Modo Misto</button>
         </div>
       )}
 

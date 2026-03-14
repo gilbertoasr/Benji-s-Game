@@ -9,6 +9,7 @@ export default function LanguageGame({ language, level, goHome, updateScore, pla
   const [feedback, setFeedback] = useState(null);
   const [previousWord, setPreviousWord] = useState(null);
   const [showSuccess, setShowSuccess] = useState(null);
+  const [showFailure, setShowFailure] = useState(false);
 
   const loadNewWord = () => {
     const wordsForLevel = wordDB[language][level] || wordDB[language][1];
@@ -33,6 +34,7 @@ export default function LanguageGame({ language, level, goHome, updateScore, pla
     setHasStarted(false);
     setFeedback(null);
     setShowSuccess(null);
+    setShowFailure(false);
   };
 
   useEffect(() => {
@@ -93,10 +95,11 @@ export default function LanguageGame({ language, level, goHome, updateScore, pla
       
       const willChange = updateScore(true);
       if (!willChange) {
-        setTimeout(loadNewWord, 2000);
+        setTimeout(loadNewWord, 3000);
       }
     } else {
       setFeedback('wrong');
+      setShowFailure(true);
       const willChange = updateScore(false);
       if (!willChange) {
         setTimeout(() => {
@@ -107,6 +110,7 @@ export default function LanguageGame({ language, level, goHome, updateScore, pla
           setScrambled(reshuffled);
           setAssembled([]);
           setFeedback(null);
+          setShowFailure(false);
         }, 1500);
       }
     }
@@ -124,8 +128,17 @@ export default function LanguageGame({ language, level, goHome, updateScore, pla
 
       {showSuccess && (
         <div className="success-banner">
-          <div className="fireworks">🎉✨🎆✨🎉</div>
+          <div className="fireworks top-left">🎉</div>
+          <div className="fireworks top-right">✨</div>
+          <div className="fireworks bottom-left">🎆</div>
+          <div className="fireworks bottom-right">🎉</div>
           <div className="success-frame">{showSuccess}</div>
+        </div>
+      )}
+
+      {showFailure && (
+        <div className="failure-banner">
+          <div className="failure-frame">😞</div>
         </div>
       )}
 

@@ -5,6 +5,7 @@ export default function MathGame({ level, goHome, updateScore, playCorrectSound 
   const [userAnswer, setUserAnswer] = useState('');
   const [feedback, setFeedback] = useState(null);
   const [showSuccess, setShowSuccess] = useState(null);
+  const [showFailure, setShowFailure] = useState(false);
 
   const generateProblem = () => {
     let n1, n2, op;
@@ -35,6 +36,7 @@ export default function MathGame({ level, goHome, updateScore, playCorrectSound 
     setUserAnswer('');
     setFeedback(null);
     setShowSuccess(null);
+    setShowFailure(false);
   };
 
   useEffect(() => {
@@ -55,13 +57,17 @@ export default function MathGame({ level, goHome, updateScore, playCorrectSound 
       if (!willChange) {
         setTimeout(() => {
           generateProblem();
-        }, 2000); // 2s to match fireworks
+        }, 3000); // 3s to match fireworks
       }
     } else {
       setFeedback('wrong');
+      setShowFailure(true);
       const willChange = updateScore(false);
       if (!willChange) {
-        setTimeout(() => setFeedback(null), 1500);
+        setTimeout(() => {
+          setFeedback(null);
+          setShowFailure(false);
+        }, 1500);
       }
       setUserAnswer('');
     }
@@ -73,8 +79,17 @@ export default function MathGame({ level, goHome, updateScore, playCorrectSound 
       
       {showSuccess !== null && (
         <div className="success-banner">
-          <div className="fireworks">🎉✨🎆✨🎉</div>
+          <div className="fireworks top-left">🎉</div>
+          <div className="fireworks top-right">✨</div>
+          <div className="fireworks bottom-left">🎆</div>
+          <div className="fireworks bottom-right">🎉</div>
           <div className="success-frame">{showSuccess}</div>
+        </div>
+      )}
+
+      {showFailure && (
+        <div className="failure-banner">
+          <div className="failure-frame">😞</div>
         </div>
       )}
       
