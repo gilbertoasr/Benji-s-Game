@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 
-export default function MathGame({ level, goHome, updateScore }) {
+export default function MathGame({ level, goHome, updateScore, playCorrectSound }) {
   const [problem, setProblem] = useState({ num1: 0, num2: 0, operator: '+' });
   const [userAnswer, setUserAnswer] = useState('');
   const [feedback, setFeedback] = useState(null);
+  const [showSuccess, setShowSuccess] = useState(null);
 
   const generateProblem = () => {
     let n1, n2, op;
@@ -33,6 +34,7 @@ export default function MathGame({ level, goHome, updateScore }) {
     setProblem({ num1: n1, num2: n2, operator: op });
     setUserAnswer('');
     setFeedback(null);
+    setShowSuccess(null);
   };
 
   useEffect(() => {
@@ -46,9 +48,14 @@ export default function MathGame({ level, goHome, updateScore }) {
     const correctAnswer = problem.operator === '+' ? problem.num1 + problem.num2 : problem.num1 - problem.num2;
     if (parseInt(userAnswer) === correctAnswer) {
       setFeedback('correct');
+      playCorrectSound();
+      setShowSuccess(correctAnswer);
+      
       const willChange = updateScore(true);
       if (!willChange) {
-        setTimeout(generateProblem, 1500);
+        setTimeout(() => {
+          generateProblem();
+        }, 2000); // 2s to match fireworks
       }
     } else {
       setFeedback('wrong');
@@ -63,6 +70,14 @@ export default function MathGame({ level, goHome, updateScore }) {
   return (
     <div className="math-game">
       <h2>Matemática - Nível {level}</h2>
+      
+      {showSuccess !== null && (
+        <div className="success-banner">
+          <div className="fireworks">🎉✨🎆✨🎉</div>
+          <div className="success-frame">{showSuccess}</div>
+        </div>
+      )}
+      
       <div className="equation-board">
         {problem.num1} {problem.operator} {problem.num2} = {userAnswer || '?'}
       </div>

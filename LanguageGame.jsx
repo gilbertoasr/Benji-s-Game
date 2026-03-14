@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { wordDB } from './words';
 
-export default function LanguageGame({ language, level, goHome, updateScore }) {
+export default function LanguageGame({ language, level, goHome, updateScore, playCorrectSound }) {
   const [currentWordObj, setCurrentWordObj] = useState(null);
   const [scrambled, setScrambled] = useState([]);
   const [assembled, setAssembled] = useState([]);
   const [hasStarted, setHasStarted] = useState(false);
   const [feedback, setFeedback] = useState(null);
   const [previousWord, setPreviousWord] = useState(null);
+  const [showSuccess, setShowSuccess] = useState(null);
 
   const loadNewWord = () => {
     const wordsForLevel = wordDB[language][level] || wordDB[language][1];
@@ -21,11 +22,17 @@ export default function LanguageGame({ language, level, goHome, updateScore }) {
     
     setCurrentWordObj(randomWord);
     
-    const shuffled = [...randomWord.syllables].sort(() => Math.random() - 0.5);
+    // Ensure the scramble is never the correct word initially
+    let shuffled = [...randomWord.syllables].sort(() => Math.random() - 0.5);
+    while (shuffled.join('') === randomWord.word && randomWord.syllables.length > 1) {
+      shuffled = [...randomWord.syllables].sort(() => Math.random() - 0.5);
+    }
+    
     setScrambled(shuffled);
     setAssembled([]);
     setHasStarted(false);
     setFeedback(null);
+    setShowSuccess(null);
   };
 
   useEffect(() => {
@@ -81,6 +88,9 @@ export default function LanguageGame({ language, level, goHome, updateScore }) {
     if (assembled.join('') === currentWordObj.word) {
       setFeedback('correct');
       setPreviousWord(currentWordObj);
+      playCorrectSound();
+      setShowSuccess(currentWordObj.image || '🌟');
+      
       const willChange = updateScore(true);
       if (!willChange) {
         setTimeout(loadNewWord, 2000);
@@ -90,7 +100,10 @@ export default function LanguageGame({ language, level, goHome, updateScore }) {
       const willChange = updateScore(false);
       if (!willChange) {
         setTimeout(() => {
-          const reshuffled = [...currentWordObj.syllables].sort(() => Math.random() - 0.5);
+          let reshuffled = [...currentWordObj.syllables].sort(() => Math.random() - 0.5);
+          while (reshuffled.join('') === currentWordObj.word && currentWordObj.syllables.length > 1) {
+            reshuffled = [...currentWordObj.syllables].sort(() => Math.random() - 0.5);
+          }
           setScrambled(reshuffled);
           setAssembled([]);
           setFeedback(null);
@@ -108,6 +121,13 @@ export default function LanguageGame({ language, level, goHome, updateScore }) {
   return (
     <div className="language-game">
       <h2>{language === 'en' ? `Level ${level}` : `Nível ${level}`}</h2>
+
+      {showSuccess && (
+        <div className="success-banner">
+          <div className="fireworks">🎉✨🎆✨🎉</div>
+          <div className="success-frame">{showSuccess}</div>
+        </div>
+      )}
 
       {!hasStarted ? (
         <div className="start-screen">

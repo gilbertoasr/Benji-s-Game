@@ -36,6 +36,30 @@ const playArcadeSound = (type) => {
   }
 };
 
+const playCorrectSound = () => {
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    const audioCtx = new AudioContext();
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    oscillator.type = 'sine'; // Smooth, happy chime
+    
+    const now = audioCtx.currentTime;
+    oscillator.frequency.setValueAtTime(523.25, now); // C5
+    oscillator.frequency.setValueAtTime(659.25, now + 0.1); // E5
+    oscillator.frequency.setValueAtTime(783.99, now + 0.2); // G5
+    
+    gainNode.gain.setValueAtTime(0.1, now);
+    gainNode.gain.exponentialRampToValueAtTime(0.00001, now + 0.4);
+    oscillator.start(now);
+    oscillator.stop(now + 0.4);
+  } catch (e) { }
+};
+
 export default function App() {
   const [currentView, setCurrentView] = useState('home'); // 'home', 'levels', 'math', 'pt', 'en'
   const [subject, setSubject] = useState(null);
@@ -75,7 +99,7 @@ export default function App() {
 
   const updateScore = (isCorrect) => {
     let willLevelChange = false;
-    let delay = subject === 'math' ? 1500 : (isCorrect ? 2000 : 1500);
+    let delay = isCorrect ? 2000 : 1500; // 2 seconds for fireworks
 
     setScore(prev => ({
       ...prev,
@@ -89,7 +113,7 @@ export default function App() {
       if (isCorrect) {
         setConsecutiveWrong(0);
         const nextCorrect = correctInLevel + 1;
-        if (nextCorrect >= 4 && level < 5) {
+        if (nextCorrect >= 5 && level < 5) { // 5 Correct Answers to Level Up
           willLevelChange = true;
           setLevelBanner('up');
           playArcadeSound('up');
@@ -99,11 +123,11 @@ export default function App() {
           }, delay);
           setCorrectInLevel(0);
         } else {
-          setCorrectInLevel(nextCorrect >= 4 ? 0 : nextCorrect);
+          setCorrectInLevel(nextCorrect >= 5 ? 0 : nextCorrect);
         }
       } else {
         const nextWrong = consecutiveWrong + 1;
-        if (nextWrong >= 2 && level > 1) {
+        if (nextWrong >= 4 && level > 1) { // 4 Wrong Answers to Level Down
           willLevelChange = true;
           setLevelBanner('down');
           playArcadeSound('down');
@@ -114,7 +138,7 @@ export default function App() {
           setConsecutiveWrong(0);
           setCorrectInLevel(0);
         } else {
-          setConsecutiveWrong(nextWrong >= 2 ? 0 : nextWrong);
+          setConsecutiveWrong(nextWrong >= 4 ? 0 : nextWrong);
         }
       }
     }
@@ -165,8 +189,8 @@ export default function App() {
         </div>
       )}
 
-      {currentView === 'math' && <MathGame level={level} goHome={goHome} updateScore={updateScore} />}
-      {(currentView === 'pt' || currentView === 'en') && <LanguageGame language={subject} level={level} goHome={goHome} updateScore={updateScore} />}
+      {currentView === 'math' && <MathGame level={level} goHome={goHome} updateScore={updateScore} playCorrectSound={playCorrectSound} />}
+      {(currentView === 'pt' || currentView === 'en') && <LanguageGame language={subject} level={level} goHome={goHome} updateScore={updateScore} playCorrectSound={playCorrectSound} />}
     </div>
   );
 }
